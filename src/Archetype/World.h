@@ -193,10 +193,11 @@ namespace Weave
 		public:
 			EntityID CreateEntity();
 			void DeleteEntity(EntityID entity);
-			bool IsEntityRegistered(EntityID entity);
+
+			bool IsEntityRegistered(EntityID entity) const;
 
             template <typename Component>
-            Component* GetComponent(EntityID entity)
+            Component* TryGetComponent(EntityID entity)
             {
                 if (!entityToArchetype.contains(entity)) return nullptr;
 
@@ -205,14 +206,6 @@ namespace Weave
                 if (!entityArchetype->GetComponentTypes().contains(typeid(Component))) return nullptr;
 
                 return entityArchetype->GetComponent<Component>(entity);
-            }
-
-            template <typename Component>
-            bool HasComponent(EntityID entity)
-            {
-                if (!entityToArchetype.contains(entity)) return false;
-
-                return entityToArchetype[entity]->GetComponentTypes().contains(typeid(Component));
             }
 
             template <typename Component>

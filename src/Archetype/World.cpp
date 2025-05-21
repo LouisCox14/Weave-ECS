@@ -23,7 +23,7 @@ void Weave::ECS::World::DeleteEntity(EntityID entity)
 	availableEntityIDs.insert(entity);
 }
 
-bool Weave::ECS::World::IsEntityRegistered(Weave::ECS::EntityID entity)
+bool Weave::ECS::World::IsEntityRegistered(Weave::ECS::EntityID entity) const
 {
 	if (entity > nextEntityID) return false;
 	if (availableEntityIDs.find(entity) != availableEntityIDs.end()) return false;
