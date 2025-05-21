@@ -5,7 +5,6 @@
 #include <array>
 #include <algorithm>
 #include <span>
-#include "Events.h"
 
 namespace Weave
 {
@@ -74,8 +73,6 @@ namespace Weave
 		}
 
 	public:
-		Utilities::Event<> onSetUpdated;
-
 		void Set(std::size_t index, T data)
 		{
 			PaginatedArrayIndex sparseIndex = GetSparseIndex(index);
@@ -98,8 +95,6 @@ namespace Weave
 				(*sparsePages[sparseIndex.page].get())[sparseIndex.index] = dense.size();
 				denseToSparse.push_back(index);
 				dense.push_back(data);
-
-				onSetUpdated();
 			}
 			else
 			{
@@ -123,8 +118,6 @@ namespace Weave
 
 			dense.pop_back();
 			denseToSparse.pop_back();
-
-			onSetUpdated();
 		}
 
 		T* Get(std::size_t index)

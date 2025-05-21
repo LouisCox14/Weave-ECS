@@ -4,6 +4,7 @@
 #include <typeindex>
 #include <set>
 #include <tuple>
+#include <stdexcept>
 #include "SparseSet.h"
 
 namespace Weave

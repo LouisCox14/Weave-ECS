@@ -21,14 +21,8 @@ endif()
 # Gather .cpp files from the selected ECS source directory
 file(GLOB_RECURSE ECS_SRC_FILES "${SRC_DIR}/*.cpp")
 
-# Always gather .cpp files from src/Utilities
-file(GLOB_RECURSE UTIL_SRC_FILES "${CMAKE_SOURCE_DIR}/src/Utilities/*.cpp")
-
-# Combine all source files
-set(SRC_FILES ${ECS_SRC_FILES} ${UTIL_SRC_FILES})
-
 # Add library
-add_library(ECSComparison STATIC ${SRC_FILES})
+add_library(ECSComparison STATIC ${ECS_SRC_FILES})
 
 # Include directories
-target_include_directories(ECSComparison PRIVATE "${SRC_DIR}" "${CMAKE_SOURCE_DIR}/src/Utilities")
+target_include_directories(ECSComparison PRIVATE "${SRC_DIR}")
