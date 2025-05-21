@@ -1,7 +1,7 @@
 #pragma once
 #include "World.h"
 
-Weave::ECS::EntityID Weave::ECS::SparseSetWorld::CreateEntity()
+Weave::ECS::EntityID Weave::ECS::World::CreateEntity()
 {
 	if (!availableEntityIDs.empty())
 		return availableEntityIDs.extract(availableEntityIDs.begin()).value();
@@ -9,7 +9,7 @@ Weave::ECS::EntityID Weave::ECS::SparseSetWorld::CreateEntity()
 	return nextEntityID++;
 }
 
-void Weave::ECS::SparseSetWorld::DeleteEntity(EntityID entity)
+void Weave::ECS::World::DeleteEntity(EntityID entity)
 {
 	if (!IsEntityRegistered(entity))
 		throw std::logic_error("Entity is not registered.");
@@ -22,7 +22,7 @@ void Weave::ECS::SparseSetWorld::DeleteEntity(EntityID entity)
 	availableEntityIDs.insert(entity);
 }
 
-bool Weave::ECS::SparseSetWorld::IsEntityRegistered(Weave::ECS::EntityID entity) const
+bool Weave::ECS::World::IsEntityRegistered(Weave::ECS::EntityID entity) const
 {
 	if (entity > nextEntityID) return false;
 	if (availableEntityIDs.find(entity) != availableEntityIDs.end()) return false;

@@ -5,7 +5,6 @@
 #include <set>
 #include <tuple>
 #include "SparseSet.h"
-#include "Query.h"
 
 namespace Weave
 {
@@ -13,16 +12,51 @@ namespace Weave
 	{
 		using EntityID = std::size_t;
 
-		class SparseSetWorld
+		template<typename... Components>
+		class WorldViewIterator 
+		{
+		public:
+			using SparseSetsTuple = std::tuple<SparseSet<Components>&...>;
+
+			WorldViewIterator(std::vector<EntityID>::iterator current, std::vector<EntityID>::iterator end, SparseSetsTuple sets)
+				: current(current), end(end), sets(std::move(sets)) {}
+
+			bool operator!=(const WorldViewIterator& other) const { return current != other.current; }
+			void operator++() { ++current; }
+
+			auto operator*() {
+				EntityID entity = *current;
+				return std::tuple_cat(std::make_tuple(entity), std::tie(*std::get<SparseSet<Components>&>(sets).Get(entity)...));
+			}
+
+		private:
+			std::vector<EntityID>::iterator current, end;
+			SparseSetsTuple sets;
+		};
+
+		template<typename... Components>
+		class WorldView 
+		{
+		public:
+			using SparseSetsTuple = std::tuple<SparseSet<Components>&...>;
+
+			WorldView(std::vector<EntityID> entities, SparseSetsTuple sets)
+				: validEntities(std::move(entities)), sets(std::move(sets)) {}
+
+			auto begin() { return WorldViewIterator<Components...>(validEntities.begin(), validEntities.end(), sets); }
+			auto end() { return WorldViewIterator<Components...>(validEntities.end(), validEntities.end(), sets); }
+
+		private:
+			std::vector<EntityID> validEntities;
+			SparseSetsTuple sets;
+		};
+
+		class World
 		{
 		private:
 			std::unordered_map<std::type_index, std::unique_ptr<ISparseSet>> componentStorage;
 			std::set<EntityID> availableEntityIDs;
 			EntityID nextEntityID = 0;
-
-			std::unordered_map<std::type_index, std::unique_ptr<IQueryNode>> componentQueryNodes;
-			std::vector<std::unique_ptr<IQueryNode>> queryNodes;
-
 
 			template<typename T>
 			SparseSet<T>& GetComponentSet()
@@ -66,6 +100,18 @@ namespace Weave
 				set.Set(entity, component);
 			}
 
+			template<typename... Components>
+			void AddComponents(EntityID entity)
+			{
+				(AddComponent<Components>(entity), ...);
+			}
+
+			template <typename... Components>
+			void AddComponents(EntityID entity, Components... components)
+			{
+				(AddComponent<Components>(entity, components), ...);
+			}
+
 			template<typename T>
 			void RemoveComponent(EntityID entity) 
 			{
@@ -77,6 +123,12 @@ namespace Weave
 				if (!componentSet) return;
 
 				componentSet->Delete(entity);
+			}
+
+			template<typename... Components>
+			void RemoveComponents(EntityID entity)
+			{
+				(RemoveComponent<Components>(entity), ...);
 			}
 
 			template<typename T>
@@ -91,55 +143,28 @@ namespace Weave
 				return componentSet->Get(entity);
 			}
 
-			DifferenceNode& GetDifferenceNode(IQueryNode* mainSet, IQueryNode* exclusionSet)
-			{
-				std::unique_ptr<DifferenceNode> difference = std::make_unique<DifferenceNode>(mainSet, exclusionSet);
-				queryNodes.push_back(std::move(difference));
-
-				return *dynamic_cast<DifferenceNode*>(queryNodes.back().get());
-			}
-
-			IntersectionNode& GetIntersectionNode(std::vector<IQueryNode*> nodes)
-			{
-				std::unique_ptr<IntersectionNode> intersection = std::make_unique<IntersectionNode>(nodes);
-				queryNodes.push_back(std::move(intersection));
-
-				return *dynamic_cast<IntersectionNode*>(queryNodes.back().get());
-			}
-
-			template<typename T>
-			SparseSetNode<T>& GetQueryNode()
-			{
-				std::unordered_map<std::type_index, std::unique_ptr<IQueryNode>>::const_iterator it = componentQueryNodes.find(std::type_index(typeid(T)));
-
-				if (it == componentQueryNodes.end())
-				{
-					std::unique_ptr<IQueryNode> newNode = std::make_unique<SparseSetNode<T>>(&GetComponentSet<T>());
-					componentQueryNodes[std::type_index(typeid(T))] = std::move(newNode);
-					it = componentQueryNodes.find(std::type_index(typeid(T)));
-				}
-
-				SparseSetNode<T>* node = dynamic_cast<SparseSetNode<T>*>(it->second.get());
-
-				if (!node)
-					throw std::logic_error("Failed to retrieve SparseSetNode of the correct type.");
-
-				return *node;
-			}
-
 			template<typename... ComponentTypes>
-			Query<ComponentTypes...> CreateQuery(IQueryNode* rootNode = nullptr)
+			WorldView<ComponentTypes...> GetView()
 			{
-				std::tuple<SparseSet<ComponentTypes>&...> sparseSets = std::forward_as_tuple(GetComponentSet<ComponentTypes>()...);
+				std::vector<EntityID> baseEntities;
 
-				if (!rootNode)
-				{
-					std::unique_ptr<IQueryNode> intersection = std::make_unique<IntersectionNode>(std::vector<IQueryNode*>{ &GetQueryNode<ComponentTypes>()... });
-					queryNodes.push_back(std::move(intersection));
-					rootNode = queryNodes.back().get();
+				auto& smallestSet = (std::min)({ GetComponentSet<ComponentTypes>().Size()... }, [](auto a, auto b) {
+					return a < b;
+					});
+
+				(std::initializer_list<int>{(
+					baseEntities.empty() && GetComponentSet<ComponentTypes>().Size() > 0
+					? (baseEntities = GetComponentSet<ComponentTypes>().GetIndexes(), 0) : 0
+					)...});
+
+				std::vector<EntityID> valid;
+				for (EntityID entity : baseEntities) {
+					if ((GetComponentSet<ComponentTypes>().HasIndex(entity) && ...)) {
+						valid.push_back(entity);
+					}
 				}
 
-				return Query<ComponentTypes...>(rootNode, std::get<SparseSet<ComponentTypes>&>(sparseSets)...);
+				return WorldView<ComponentTypes...>(std::move(valid), std::forward_as_tuple(GetComponentSet<ComponentTypes>()...));
 			}
 		};
 	}
