@@ -74,7 +74,7 @@ namespace Weave
 		}
 
 	public:
-		Utilities::Event<void> onSetUpdated;
+		Utilities::Event<> onSetUpdated;
 
 		void Set(std::size_t index, T data)
 		{

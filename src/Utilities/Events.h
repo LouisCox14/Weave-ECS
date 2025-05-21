@@ -3,6 +3,7 @@
 #include <map>
 #include <functional>
 #include <concepts>
+#include <stdexcept>
 
 namespace Weave
 {

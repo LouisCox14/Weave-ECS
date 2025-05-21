@@ -24,7 +24,7 @@ namespace Weave
             virtual bool HasEntity(std::size_t entity) = 0;
             virtual std::unordered_set<std::type_index> GetGuaranteedComponents() = 0;
 
-            Utilities::Event<void> onNodeUpdated;
+            Utilities::Event<> onNodeUpdated;
         };
 
         template<typename T>
@@ -80,7 +80,7 @@ namespace Weave
             {
                 for (IQueryNode* node : children)
                 {
-                    node->onNodeUpdated.Subscribe(std::ref(*this), &IntersectionNode::HandleNodeUpdated);
+                    node->onNodeUpdated.Subscribe(*this, &IntersectionNode::HandleNodeUpdated);
                 }
             }
 
@@ -155,8 +155,8 @@ namespace Weave
         public:
             DifferenceNode(IQueryNode* _mainSet, IQueryNode* _exclusionSet) : mainSet(_mainSet), exclusionSet(_exclusionSet) 
             {
-                mainSet->onNodeUpdated.Subscribe(std::ref(*this), &DifferenceNode::HandleNodeUpdated);
-                exclusionSet->onNodeUpdated.Subscribe(std::ref(*this), &DifferenceNode::HandleNodeUpdated);
+                mainSet->onNodeUpdated.Subscribe(*this, &DifferenceNode::HandleNodeUpdated);
+                exclusionSet->onNodeUpdated.Subscribe(*this, &DifferenceNode::HandleNodeUpdated);
             }
 
             std::vector<std::size_t> GetValidEntities() override {
