@@ -48,7 +48,7 @@ struct Velocity { float dx, dy; };
 
 Weave::ECS::World world;
 
-EntityID e = world.CreateEntity();
+Weave::ECS::EntityID e = world.CreateEntity();
 ```
 
 3. Add Components
