@@ -11,9 +11,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set the source directory based on ECS_BACKEND
 if(ECS_BACKEND STREQUAL "SparseSet")
-    set(SRC_DIR "${CMAKE_SOURCE_DIR}/src/SparseSet")
+    set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/SparseSet")
 elseif(ECS_BACKEND STREQUAL "Archetype")
-    set(SRC_DIR "${CMAKE_SOURCE_DIR}/src/Archetype")
+    set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Archetype")
 else()
     message(FATAL_ERROR "Invalid ECS_BACKEND value: ${ECS_BACKEND}")
 endif()
