@@ -152,16 +152,18 @@ namespace Weave
 			template<typename... ComponentTypes>
 			WorldView<ComponentTypes...> GetView()
 			{
+				auto sets = std::forward_as_tuple(GetComponentSet<ComponentTypes>()...);
+
 				std::vector<EntityID> baseEntities;
+				std::size_t minSize = std::numeric_limits<std::size_t>::max();
 
-				auto& smallestSet = (std::min)({ GetComponentSet<ComponentTypes>().Size()... }, [](auto a, auto b) {
-					return a < b;
-					});
-
-				(std::initializer_list<int>{(
-					baseEntities.empty() && GetComponentSet<ComponentTypes>().Size() > 0
-					? (baseEntities = GetComponentSet<ComponentTypes>().GetIndexes(), 0) : 0
-					)...});
+				([&] {
+					auto& set = GetComponentSet<ComponentTypes>();
+					if (set.Size() < minSize) {
+						baseEntities = set.GetIndexes();
+						minSize = set.Size();
+					}
+					}(), ...);
 
 				std::vector<EntityID> valid;
 				for (EntityID entity : baseEntities) {
@@ -172,6 +174,7 @@ namespace Weave
 
 				return WorldView<ComponentTypes...>(std::move(valid), std::forward_as_tuple(GetComponentSet<ComponentTypes>()...));
 			}
+
 		};
 	}
 }
