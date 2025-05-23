@@ -150,7 +150,7 @@ namespace Weave
 			return denseToSparse;
 		}
 
-		std::size_t size() override
+		std::size_t Size() override
 		{
 			return dense.size();
 		}
