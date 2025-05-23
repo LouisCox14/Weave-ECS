@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(ECSComparison CXX)
+project(WeaveECS CXX)
 
 # Option to choose the ECS backend
 set(ECS_BACKEND "Archetype" CACHE STRING "Choose ECS backend: SparseSet or Archetype")
@@ -22,7 +22,7 @@ endif()
 file(GLOB_RECURSE ECS_SRC_FILES "${SRC_DIR}/*.cpp")
 
 # Add library
-add_library(ECSComparison STATIC ${ECS_SRC_FILES})
+add_library(WeaveECS STATIC ${ECS_SRC_FILES})
 
 # Include directories
-target_include_directories(ECSComparison PRIVATE "${SRC_DIR}")
+target_include_directories(WeaveECS PRIVATE "${SRC_DIR}")
