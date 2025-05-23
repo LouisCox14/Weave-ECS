@@ -11,7 +11,7 @@ namespace Weave
 	class ISparseSet
 	{
 	public:
-		virtual std::size_t size() = 0;
+		virtual std::size_t Size() = 0;
 		virtual bool HasIndex(std::size_t index) = 0;
 		virtual void Delete(std::size_t index) = 0;
 	};
