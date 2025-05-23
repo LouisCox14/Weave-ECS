@@ -25,4 +25,4 @@ file(GLOB_RECURSE ECS_SRC_FILES "${SRC_DIR}/*.cpp")
 add_library(WeaveECS STATIC ${ECS_SRC_FILES})
 
 # Include directories
-target_include_directories(WeaveECS PRIVATE "${SRC_DIR}")
+target_include_directories(WeaveECS PUBLIC "${SRC_DIR}")
