@@ -47,6 +47,11 @@ namespace Weave
 			auto begin() { return WorldViewIterator<Components...>(validEntities.begin(), validEntities.end(), sets); }
 			auto end() { return WorldViewIterator<Components...>(validEntities.end(), validEntities.end(), sets); }
 
+			std::size_t GetEntityCount()
+			{
+				return validEntities.size();
+			}
+
 		private:
 			std::vector<EntityID> validEntities;
 			SparseSetsTuple sets;
