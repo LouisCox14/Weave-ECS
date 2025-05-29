@@ -47,7 +47,7 @@ namespace Weave
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(World&)> systemFn, float priority = 0.0f);
 
 			template<typename... Components>
-			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(Components&...)> systemFn, float priority = 0.0f, uint8_t targetThreads = 0)
+			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f, uint8_t targetThreads = 0)
 			{
 				auto wrapper = [systemFn, targetThreads](World& world)
 					{
