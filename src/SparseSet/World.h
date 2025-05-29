@@ -174,7 +174,6 @@ namespace Weave
 
 				return WorldView<ComponentTypes...>(std::move(valid), std::forward_as_tuple(GetComponentSet<ComponentTypes>()...));
 			}
-
 		};
 	}
 }

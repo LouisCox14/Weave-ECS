@@ -9,20 +9,41 @@ set_property(CACHE ECS_BACKEND PROPERTY STRINGS SparseSet Archetype)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set the source directory based on ECS_BACKEND
+# Set base source directories
+set(BASE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(UTILITIES_DIR "${BASE_SRC_DIR}/Utilities")
+
+# Set backend source directory
 if(ECS_BACKEND STREQUAL "SparseSet")
-    set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/SparseSet")
+    set(BACKEND_SRC_DIR "${BASE_SRC_DIR}/SparseSet")
 elseif(ECS_BACKEND STREQUAL "Archetype")
-    set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Archetype")
+    set(BACKEND_SRC_DIR "${BASE_SRC_DIR}/Archetype")
 else()
     message(FATAL_ERROR "Invalid ECS_BACKEND value: ${ECS_BACKEND}")
 endif()
 
-# Gather .cpp files from the selected ECS source directory
-file(GLOB_RECURSE ECS_SRC_FILES "${SRC_DIR}/*.cpp")
+# Gather .cpp files directly in /src (non-recursive)
+file(GLOB SRC_ROOT_FILES "${BASE_SRC_DIR}/*.cpp" "${BASE_SRC_DIR}/*.c")
+
+# Gather backend-specific files (recursive)
+file(GLOB_RECURSE BACKEND_SRC_FILES "${BACKEND_SRC_DIR}/*.cpp")
+
+# Gather utility files (recursive)
+file(GLOB_RECURSE UTILITIES_SRC_FILES "${UTILITIES_DIR}/*.cpp")
+
+# Combine all source files
+set(ALL_SRC_FILES
+    ${SRC_ROOT_FILES}
+    ${BACKEND_SRC_FILES}
+    ${UTILITIES_SRC_FILES}
+)
 
 # Add library
-add_library(WeaveECS STATIC ${ECS_SRC_FILES})
+add_library(WeaveECS STATIC ${ALL_SRC_FILES})
 
 # Include directories
-target_include_directories(WeaveECS PUBLIC "${SRC_DIR}")
+target_include_directories(WeaveECS PUBLIC
+    "${BASE_SRC_DIR}"
+    "${BACKEND_SRC_DIR}"
+    "${UTILITIES_DIR}"
+)
