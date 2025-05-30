@@ -62,7 +62,7 @@ namespace Weave
 
 					Weave::Utilities::ThreadPool pool(threadCount > 0 ? threadCount : 4);
 
-					for (auto& entity : view)
+					for (auto entity : view)
 					{
 						pool.Enqueue([entity, systemFn]() mutable {
 							std::apply(systemFn, entity);
