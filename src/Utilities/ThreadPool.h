@@ -6,12 +6,13 @@
 #include <condition_variable>
 #include <functional>
 #include <future>
+#include <atomic>
 
 namespace Weave
 {
-	namespace Utilities
-	{
-        class ThreadPool 
+    namespace Utilities
+    {
+        class ThreadPool
         {
         private:
             std::vector<std::thread> workers;
@@ -19,9 +20,11 @@ namespace Weave
             std::mutex queueMutex;
             std::condition_variable condition;
             bool stop = false;
+            std::atomic<int> activeTasks{ 0 };
+            std::condition_variable completionCondition;
 
         public:
-            explicit ThreadPool(size_t numThreads) 
+            explicit ThreadPool(size_t numThreads)
             {
                 for (size_t i = 0; i < numThreads; ++i)
                 {
@@ -37,9 +40,18 @@ namespace Weave
 
                                 task = std::move(tasks.front());
                                 tasks.pop();
+                                activeTasks++;
                             }
 
                             task();
+
+                            {
+                                std::lock_guard<std::mutex> lock(queueMutex);
+                                activeTasks--;
+                                if (activeTasks == 0 && tasks.empty()) {
+                                    completionCondition.notify_all();
+                                }
+                            }
                         }});
                 }
             }
@@ -60,6 +72,19 @@ namespace Weave
                 return result;
             }
 
+            uint8_t GetThreadCount()
+            {
+                return workers.size();
+            }
+
+            void WaitAll()
+            {
+                std::unique_lock<std::mutex> lock(queueMutex);
+                completionCondition.wait(lock, [this]() {
+                    return tasks.empty() && activeTasks == 0;
+                    });
+            }
+
             ~ThreadPool()
             {
                 {
@@ -72,5 +97,5 @@ namespace Weave
                 }
             }
         };
-	}
+    }
 }

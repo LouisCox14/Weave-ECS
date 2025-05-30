@@ -1,6 +1,8 @@
 #pragma once
 #include "Engine.h"
 
+Weave::ECS::Engine::Engine(uint8_t threadCount) : threadPool(std::make_unique<Utilities::ThreadPool>(threadCount)) { }
+
 Weave::ECS::World& Weave::ECS::Engine::GetWorld()
 {
     return world;
