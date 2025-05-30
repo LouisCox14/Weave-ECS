@@ -6,7 +6,7 @@ Weave::ECS::World& Weave::ECS::Engine::GetWorld()
     return world;
 }
 
-inline Weave::ECS::SystemGroupID Weave::ECS::Engine::CreateSystemGroup()
+Weave::ECS::SystemGroupID Weave::ECS::Engine::CreateSystemGroup()
 {
 	return nextSystemGroupID++;
 }
