@@ -31,7 +31,7 @@ namespace Weave
                 for (auto view : archetypeViews)
                 {
                     total += view.GetEntityCount();
-                    cumulativeSizes.push_back(total + 1);
+                    cumulativeSizes.push_back(total);
                 }
             }
 
@@ -106,7 +106,7 @@ namespace Weave
 
             Iterator at(size_t index)
             {
-                if (index > cumulativeSizes.back()) {
+                if (index >= cumulativeSizes.back()) {
                     throw std::out_of_range("WorldView index out of range");
                 }
 
