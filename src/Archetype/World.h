@@ -121,14 +121,7 @@ namespace Weave
 
             std::size_t GetEntityCount()
             {
-                std::size_t count = 0;
-
-                for (ArchetypeView<Components...> archetypeView : archetypeViews)
-                {
-                    count += archetypeView.GetEntityCount();
-                }
-
-                return count;
+                return cumulativeSizes.back();
             }
         };
 
