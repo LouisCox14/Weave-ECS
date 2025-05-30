@@ -47,28 +47,68 @@ namespace Weave
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(World&)> systemFn, float priority = 0.0f);
 
 			template<typename... Components>
-			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f, uint8_t targetThreads = 0)
+			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f, int targetThreads = -1)
 			{
-				auto wrapper = [systemFn, targetThreads](World& world)
-					{
-					WorldView<Components...> view = world.GetView<Components...>();
+				auto wrapper;
 
-					size_t count = view.GetEntityCount();
-					if (count == 0) return;
+				if (targetThreads == 0)
+				{
+					wrapper = [systemFn](World& world)
+						{
+							WorldView<Components...> view = world.GetView<Components...>();
 
-					size_t threadCount;
-					if (targetThreads != 0) threadCount = targetThreads;
-					else threadCount = std::thread::hardware_concurrency();
+							size_t count = view.GetEntityCount();
+							if (count == 0) return;
 
-					Weave::Utilities::ThreadPool pool(threadCount > 0 ? threadCount : 4);
+							for (auto entity : view)
+							{
+								std::apply(systemFn, entity);
+							}
+						};
+				}
+				else
+				{
+					wrapper = [systemFn, targetThreads](World& world)
+						{
+							WorldView<Components...> view = world.GetView<Components...>();
+							size_t count = view.GetEntityCount();
+							if (count == 0) return;
 
-					for (auto entity : view)
-					{
-						pool.Enqueue([entity, systemFn]() mutable {
-							std::apply(systemFn, entity);
-							});
-					}
-					};
+							size_t threadCount = targetThreads > 0 ? targetThreads :
+								std::thread::hardware_concurrency();
+							threadCount = threadCount > 0 ? threadCount : 4;
+
+							threadCount = std::min(threadCount, count);
+
+							size_t chunkSize = (count + threadCount - 1) / threadCount;
+
+							std::vector<std::thread> threads;
+							threads.reserve(threadCount);
+
+							for (size_t t = 0; t < threadCount; t++) 
+							{
+								size_t start = t * chunkSize;
+								size_t end = std::min(start + chunkSize, count);
+
+								threads.emplace_back([&view, start, end, systemFn]() 
+									{
+									auto it = view.at(start);
+									auto endIt = view.at(end);
+
+									while (it != endIt) 
+									{
+										std::apply(systemFn, *it);
+										++it;
+									}
+									});
+							}
+
+							for (auto& thread : threads) 
+							{
+								thread.join();
+							}
+						};
+				}
 
 				return RegisterSystem(groupID, wrapper, priority);
 			}

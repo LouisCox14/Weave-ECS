@@ -67,14 +67,13 @@ namespace Weave
 
 				auto operator*()
 				{
-					return std::tuple<EntityID, Components&...>(
-						(*entities)[index],
-						(*std::get<std::vector<Components>*>(componentVectors))[index]...);
+					return std::tuple<EntityID, Components&...>((*entities)[index], (*std::get<std::vector<Components>*>(componentVectors))[index]...);
 				}
 			};
 
 			Iterator begin() { return Iterator(0, entities, componentVectors); }
 			Iterator end() { return Iterator(entities->size(), entities, componentVectors); }
+            Iterator at(size_t index) { return Iterator(index, entities, componentVectors); }
 
             std::size_t GetEntityCount()
             {

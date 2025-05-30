@@ -21,6 +21,7 @@ namespace Weave
         {
         private:
             std::vector<ArchetypeView<Components...>> archetypeViews;
+            std::vector<size_t> cumulativeSizes;
 
         public:
             WorldView(std::vector<ArchetypeView<Components...>> views)
@@ -57,6 +58,14 @@ namespace Weave
                     : archetypeViews(views), currentArchetypeIndex(archetypeIndex), currentIterator(iterator)
                 {
                     AdvanceToNextValidArchetype();
+
+                    cumulativeSizes.reserve(archetypeViews.size());
+                    size_t total = 0;
+                    for (auto& view : archetypeViews) 
+                    {
+                        total += view.GetEntityCount();
+                        cumulativeSizes.push_back(total);
+                    }
                 }
 
                 Iterator& operator++()
@@ -93,6 +102,21 @@ namespace Weave
                     return Iterator(&archetypeViews, 0, typename ArchetypeView<Components...>::Iterator(0, nullptr, {}));
 
                 return Iterator(&archetypeViews, archetypeViews.size(), archetypeViews.back().end());
+            }
+
+            Iterator at(size_t index) 
+            {
+                if (index >= cumulativeSizes.back()) {
+                    throw std::out_of_range("WorldView index out of range");
+                }
+
+                auto it = std::upper_bound(cumulativeSizes.begin(), cumulativeSizes.end(), index);
+                size_t archetypeIndex = std::distance(cumulativeSizes.begin(), it);
+
+                size_t prevTotal = archetypeIndex > 0 ? cumulativeSizes[archetypeIndex - 1] : 0;
+                size_t localIndex = index - prevTotal;
+
+                return Iterator(&archetypeViews, archetypeIndex, archetypeViews[archetypeIndex].at(localIndex));
             }
 
             std::size_t GetEntityCount()
