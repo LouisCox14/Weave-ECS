@@ -70,7 +70,7 @@ namespace Weave
 					}
 					};
 
-				return AddSystem(groupID, wrapper, priority);
+				return RegisterSystem(groupID, wrapper, priority);
 			}
 		};
 	}
