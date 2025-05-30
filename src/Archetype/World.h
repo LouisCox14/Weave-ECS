@@ -24,8 +24,16 @@ namespace Weave
             std::vector<size_t> cumulativeSizes;
 
         public:
-            WorldView(std::vector<ArchetypeView<Components...>> views)
-                : archetypeViews(std::move(views)) {}
+            WorldView(std::vector<ArchetypeView<Components...>> views) : archetypeViews(std::move(views))
+            {
+                cumulativeSizes.reserve(archetypeViews.size());
+                size_t total = 0;
+                for (auto view : archetypeViews)
+                {
+                    total += view.GetEntityCount();
+                    cumulativeSizes.push_back(total);
+                }
+            }
 
             class Iterator
             {
@@ -58,14 +66,6 @@ namespace Weave
                     : archetypeViews(views), currentArchetypeIndex(archetypeIndex), currentIterator(iterator)
                 {
                     AdvanceToNextValidArchetype();
-
-                    cumulativeSizes.reserve(archetypeViews.size());
-                    size_t total = 0;
-                    for (auto view : archetypeViews) 
-                    {
-                        total += view.GetEntityCount();
-                        cumulativeSizes.push_back(total);
-                    }
                 }
 
                 Iterator& operator++()
