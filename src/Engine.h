@@ -3,6 +3,7 @@
 #include <vector>
 #include "ECS.h"
 #include "ThreadPool.h"
+#include "CommandBuffer.h"
 
 namespace Weave
 {
@@ -37,6 +38,7 @@ namespace Weave
 			SystemID nextSystemID = 0;
 
             std::unique_ptr<Utilities::ThreadPool> threadPool;
+			CommandBuffer commandBuffer;
 
 		public:
             Engine(uint8_t threadCount = std::thread::hardware_concurrency());
@@ -53,18 +55,38 @@ namespace Weave
 			template<typename... Components>
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f)
 			{
-				std::function<void(World&)> wrapper = [systemFn](World& world)
-					{
-						WorldView<Components...> view = world.GetView<Components...>();
+				std::function<void(World&)> wrapper;
 
-						size_t count = view.GetEntityCount();
-						if (count == 0) return;
-
-						for (auto entity : view)
+				if constexpr (requires { systemFn(std::declval<EntityID>(), std::declval<Components&>()..., std::declval<CommandBuffer&>()); })
+				{
+					wrapper = [systemFn](World& world)
 						{
-							std::apply(systemFn, entity);
-						}
-					};
+							WorldView<Components...> view = world.GetView<Components...>();
+
+							size_t count = view.GetEntityCount();
+							if (count == 0) return;
+
+							for (auto entity : view)
+							{
+								std::apply([&](auto&&... args) { systemFn(args..., commandBuffer); }, entity);
+							}
+						};
+				}
+				else
+				{
+					wrapper = [systemFn](World& world)
+						{
+							WorldView<Components...> view = world.GetView<Components...>();
+
+							size_t count = view.GetEntityCount();
+							if (count == 0) return;
+
+							for (auto entity : view)
+							{
+								std::apply(systemFn, entity);
+							}
+						};
+				}
 
 				return RegisterSystem(groupID, wrapper, priority);
 			}
@@ -72,31 +94,64 @@ namespace Weave
             template<typename... Components>
             SystemID RegisterSystemThreaded(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f)
             {
-				std::function<void(World&)> wrapper = [systemFn, targetThreads](World& world)
-					{
-						WorldView<Components...> view = world.GetView<Components...>();
-						size_t count = view.GetEntityCount();
-						if (count == 0) return;
+				std::function<void(World&)> wrapper;
 
-						size_t chunkSize = (count + threadPool->GetThreadCount() - 1) / threadPool->GetThreadCount();
+				if constexpr (requires { systemFn(std::declval<EntityID>(), std::declval<Components&>()..., std::declval<CommandBuffer&>()); })
+				{
+					wrapper = [systemFn](World& world)
+						{
+							WorldView<Components...> view = world.GetView<Components...>();
+							size_t count = view.GetEntityCount();
+							if (count == 0) return;
 
-						for (size_t t = 0; t < threadPool->GetThreadCount(); t++) {
-							size_t start = t * chunkSize;
-							size_t end = std::min(start + chunkSize, count);
+							size_t chunkSize = (count + threadPool->GetThreadCount() - 1) / threadPool->GetThreadCount();
 
-							threadPool->Enqueue([&view, start, end, systemFn]() {
-								auto it = view.at(start);
-								auto endIt = view.at(end);
+							for (size_t t = 0; t < threadPool->GetThreadCount(); t++) {
+								size_t start = t * chunkSize;
+								size_t end = std::min(start + chunkSize, count);
 
-								while (it != endIt) {
-									std::apply(systemFn, *it);
-									++it;
-								}
-								});
-						}
+								threadPool->Enqueue([&view, start, end, systemFn]() {
+									auto it = view.at(start);
+									auto endIt = view.at(end);
 
-						threadPool->WaitAll();
-					};
+									while (it != endIt) {
+										std::apply([&](auto&&... args) { systemFn(args..., commandBuffer); }, *it);
+										++it;
+									}
+									});
+							}
+
+							threadPool->WaitAll();
+						};
+				}
+				else
+				{
+					wrapper = [systemFn](World& world)
+						{
+							WorldView<Components...> view = world.GetView<Components...>();
+							size_t count = view.GetEntityCount();
+							if (count == 0) return;
+
+							size_t chunkSize = (count + threadPool->GetThreadCount() - 1) / threadPool->GetThreadCount();
+
+							for (size_t t = 0; t < threadPool->GetThreadCount(); t++) {
+								size_t start = t * chunkSize;
+								size_t end = std::min(start + chunkSize, count);
+
+								threadPool->Enqueue([&view, start, end, systemFn]() {
+									auto it = view.at(start);
+									auto endIt = view.at(end);
+
+									while (it != endIt) {
+										std::apply(systemFn, *it);
+										++it;
+									}
+									});
+							}
+
+							threadPool->WaitAll();
+						};
+				}
 
                 return RegisterSystem(groupID, wrapper, priority);
             }

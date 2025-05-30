@@ -43,6 +43,7 @@ void Weave::ECS::Engine::CallSystemGroup(SystemGroupID targetGroup)
     for (const System& system : group.systems)
     {
         system.executor(world);
+        commandBuffer.Flush(world);
     }
 }
 

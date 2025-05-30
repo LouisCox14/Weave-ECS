@@ -2,6 +2,7 @@
 #include <functional>
 #include <vector>
 #include <mutex>
+#include "World.h"
 
 namespace Weave
 {
@@ -15,15 +16,15 @@ namespace Weave
             {
                 std::lock_guard<std::mutex> lock(mutex_);
                 commands_.emplace_back(
-                    [fn = std::forward<Fn>(fn), ...args = std::forward<Args>(args)](auto& world) mutable 
+                    [fn = std::forward<Fn>(fn), ...args = std::forward<Args>(args)](World& world) mutable
                     {
                         fn(world, std::forward<Args>(args)...);
                     }
                 );
             }
 
-            void Flush(auto& world) {
-                std::vector<std::function<void(decltype(world)&)>> commands;
+            void Flush(World& world) {
+                std::vector<std::function<void(World&)>> commands;
                 {
                     std::lock_guard<std::mutex> lock(mutex_);
                     commands.swap(commands_);
@@ -35,7 +36,7 @@ namespace Weave
 
         private:
             std::mutex mutex_;
-            std::vector<std::function<void(decltype(world)&)>> commands_;
+            std::vector<std::function<void(World&)>> commands_;
         };
     }
 }
