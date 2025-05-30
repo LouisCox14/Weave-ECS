@@ -61,7 +61,7 @@ namespace Weave
 
                     cumulativeSizes.reserve(archetypeViews.size());
                     size_t total = 0;
-                    for (auto& view : archetypeViews) 
+                    for (auto view : archetypeViews) 
                     {
                         total += view.GetEntityCount();
                         cumulativeSizes.push_back(total);
