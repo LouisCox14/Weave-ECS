@@ -49,7 +49,7 @@ namespace Weave
 			template<typename... Components>
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f, int targetThreads = -1)
 			{
-				auto wrapper;
+				std::function<void(World&)> wrapper;
 
 				if (targetThreads == 0)
 				{
