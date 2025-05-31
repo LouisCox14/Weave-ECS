@@ -14,17 +14,26 @@
 
 namespace Weave
 {
-	namespace ECS
-	{
+    namespace ECS
+    {
         template <typename... Components>
         class WorldView
         {
         private:
             std::vector<ArchetypeView<Components...>> archetypeViews;
+            std::vector<size_t> cumulativeSizes;
 
         public:
-            WorldView(std::vector<ArchetypeView<Components...>> views)
-                : archetypeViews(std::move(views)) {}
+            WorldView(std::vector<ArchetypeView<Components...>> views) : archetypeViews(std::move(views))
+            {
+                cumulativeSizes.reserve(archetypeViews.size());
+                size_t total = 0;
+                for (auto view : archetypeViews)
+                {
+                    total += view.GetEntityCount();
+                    cumulativeSizes.push_back(total);
+                }
+            }
 
             class Iterator
             {
@@ -95,26 +104,34 @@ namespace Weave
                 return Iterator(&archetypeViews, archetypeViews.size(), archetypeViews.back().end());
             }
 
-            std::size_t GetEntityCount()
+            Iterator at(size_t index)
             {
-                std::size_t count = 0;
-
-                for (ArchetypeView<Components...> archetypeView : archetypeViews)
-                {
-                    count += archetypeView.GetEntityCount();
+                if (index >= cumulativeSizes.back()) {
+                    throw std::out_of_range("WorldView index out of range");
                 }
 
-                return count;
+                auto it = std::upper_bound(cumulativeSizes.begin(), cumulativeSizes.end(), index);
+                size_t archetypeIndex = std::distance(cumulativeSizes.begin(), it);
+
+                size_t prevTotal = archetypeIndex > 0 ? cumulativeSizes[archetypeIndex - 1] : 0;
+                size_t localIndex = index - prevTotal;
+
+                return Iterator(&archetypeViews, archetypeIndex, archetypeViews[archetypeIndex].at(localIndex));
+            }
+
+            std::size_t GetEntityCount()
+            {
+                return cumulativeSizes.back();
             }
         };
 
         class World;
 
-		class World
-		{
-		private:
-			EntityID nextEntityID = 0;
-			std::set<EntityID> availableEntityIDs;
+        class World
+        {
+        private:
+            EntityID nextEntityID = 0;
+            std::set<EntityID> availableEntityIDs;
 
             std::map<EntityID, Archetype*> entityToArchetype;
             std::map<std::type_index, std::set<Archetype*>> componentToArchetypes;
@@ -143,7 +160,7 @@ namespace Weave
 
                 auto it = archetypes.find(typeSet);
 
-                if (it == archetypes.end()) 
+                if (it == archetypes.end())
                 {
                     auto archetype = std::make_unique<Archetype>(dataSet);
                     archetypes.emplace(typeSet, std::move(archetype));
@@ -190,11 +207,11 @@ namespace Weave
                 entityToArchetype[entity] = newArchetype;
             }
 
-		public:
-			EntityID CreateEntity();
-			void DeleteEntity(EntityID entity);
+        public:
+            EntityID CreateEntity();
+            void DeleteEntity(EntityID entity);
 
-			bool IsEntityRegistered(EntityID entity) const;
+            bool IsEntityRegistered(EntityID entity) const;
 
             template <typename Component>
             Component* TryGetComponent(EntityID entity)
@@ -228,7 +245,7 @@ namespace Weave
                 std::set<ComponentData> newTypeSet;
                 Archetype* oldArchetype = nullptr;
 
-                if (entityToArchetype.contains(entity)) 
+                if (entityToArchetype.contains(entity))
                 {
                     oldArchetype = entityToArchetype[entity];
                     newTypeSet = oldArchetype->GetComponentData();
@@ -303,6 +320,6 @@ namespace Weave
 
                 return WorldView<QueryComponents...>(std::move(views));
             }
-		};
-	}
+        };
+    }
 }

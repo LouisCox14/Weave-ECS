@@ -1,6 +1,8 @@
 #pragma once
 #include "Engine.h"
 
+Weave::ECS::Engine::Engine(uint8_t threadCount) : threadPool(std::make_unique<Utilities::ThreadPool>(threadCount)) { }
+
 Weave::ECS::World& Weave::ECS::Engine::GetWorld()
 {
     return world;
@@ -41,6 +43,7 @@ void Weave::ECS::Engine::CallSystemGroup(SystemGroupID targetGroup)
     for (const System& system : group.systems)
     {
         system.executor(world);
+        commandBuffer.Flush(world);
     }
 }
 
