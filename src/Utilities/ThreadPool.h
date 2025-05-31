@@ -72,7 +72,7 @@ namespace Weave
                 return result;
             }
 
-            uint8_t GetThreadCount()
+            size_t GetThreadCount()
             {
                 return workers.size();
             }

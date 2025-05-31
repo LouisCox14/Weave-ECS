@@ -74,16 +74,17 @@ namespace Weave
 			template<typename... Components>
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&..., CommandBuffer&)> systemFn, float priority = 0.0f)
 			{
-				std::function<void(World&)> wrapper = [systemFn](World& world)
+				std::function<void(World&)> wrapper = [this, systemFn](World& world)
 					{
 						WorldView<Components...> view = world.GetView<Components...>();
-
 						size_t count = view.GetEntityCount();
 						if (count == 0) return;
 
 						for (auto entity : view)
 						{
-							std::apply([&](auto&&... args) { systemFn(args..., commandBuffer); }, entity);
+							std::apply([&systemFn, this](auto&&... args) {
+								systemFn(args..., this->commandBuffer);
+								}, entity);
 						}
 					};
 
@@ -93,30 +94,32 @@ namespace Weave
 			template<typename... Components>
 			SystemID RegisterSystemThreaded(SystemGroupID groupID, std::function<void(EntityID, Components&..., CommandBuffer&)> systemFn, float priority = 0.0f)
 			{
-				std::function<void(World&)> wrapper = [systemFn](World& world)
+				std::function<void(World&)> wrapper = [this, systemFn](World& world)
 					{
 						WorldView<Components...> view = world.GetView<Components...>();
 						size_t count = view.GetEntityCount();
 						if (count == 0) return;
 
-						size_t chunkSize = (count + threadPool->GetThreadCount() - 1) / threadPool->GetThreadCount();
+						size_t threads = this->threadPool->GetThreadCount();
+						size_t chunkSize = (count + threads - 1) / threads;
+						CommandBuffer& cmdBuffer = this->commandBuffer;
 
-						for (size_t t = 0; t < threadPool->GetThreadCount(); t++) {
+						for (size_t t = 0; t < this->threadPool->GetThreadCount(); t++) {
 							size_t start = t * chunkSize;
 							size_t end = std::min(start + chunkSize, count);
 
-							threadPool->Enqueue([&view, start, end, systemFn]() {
+							this->threadPool->Enqueue([&view, start, end, &systemFn, &cmdBuffer]() {
 								auto it = view.at(start);
 								auto endIt = view.at(end);
 
 								while (it != endIt) {
-									std::apply([&](auto&&... args) { systemFn(args..., commandBuffer); }, *it);
+									std::apply([&systemFn, &cmdBuffer](auto&&... args) { systemFn(args..., cmdBuffer); }, *it);
 									++it;
 								}
 								});
 						}
 
-						threadPool->WaitAll();
+						this->threadPool->WaitAll();
 					};
 
 				return RegisterSystem(groupID, wrapper, priority);
@@ -125,19 +128,19 @@ namespace Weave
             template<typename... Components>
             SystemID RegisterSystemThreaded(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f)
             {
-				std::function<void(World&)> wrapper = [systemFn](World& world)
+				std::function<void(World&)> wrapper = [this, systemFn](World& world)
 						{
 							WorldView<Components...> view = world.GetView<Components...>();
 							size_t count = view.GetEntityCount();
 							if (count == 0) return;
 
-							size_t chunkSize = (count + threadPool->GetThreadCount() - 1) / threadPool->GetThreadCount();
+							size_t chunkSize = (count + this->threadPool->GetThreadCount() - 1) / this->threadPool->GetThreadCount();
 
-							for (size_t t = 0; t < threadPool->GetThreadCount(); t++) {
+							for (size_t t = 0; t < this->threadPool->GetThreadCount(); t++) {
 								size_t start = t * chunkSize;
 								size_t end = std::min(start + chunkSize, count);
 
-								threadPool->Enqueue([&view, start, end, systemFn]() {
+								this->threadPool->Enqueue([&view, start, end, &systemFn]() {
 									auto it = view.at(start);
 									auto endIt = view.at(end);
 
@@ -148,7 +151,7 @@ namespace Weave
 									});
 							}
 
-							threadPool->WaitAll();
+							this->threadPool->WaitAll();
 						};
 
                 return RegisterSystem(groupID, wrapper, priority);
