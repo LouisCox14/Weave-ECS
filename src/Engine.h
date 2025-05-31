@@ -104,9 +104,9 @@ namespace Weave
 						size_t chunkSize = (count + threads - 1) / threads;
 						CommandBuffer& cmdBuffer = this->commandBuffer;
 
-						for (size_t t = 0; t < this->threadPool->GetThreadCount(); t++) {
+						for (size_t t = 0; t < threads; t++) {
 							size_t start = t * chunkSize;
-							size_t end = std::min(start + chunkSize, count);
+							size_t end = std::min(start + chunkSize, count - 1);
 
 							this->threadPool->Enqueue([&view, start, end, &systemFn, &cmdBuffer]() {
 								auto it = view.at(start);
@@ -134,11 +134,12 @@ namespace Weave
 							size_t count = view.GetEntityCount();
 							if (count == 0) return;
 
-							size_t chunkSize = (count + this->threadPool->GetThreadCount() - 1) / this->threadPool->GetThreadCount();
+							size_t threads = this->threadPool->GetThreadCount();
+							size_t chunkSize = (count + threads - 1) / threads;
 
-							for (size_t t = 0; t < this->threadPool->GetThreadCount(); t++) {
+							for (size_t t = 0; t < threads; t++) {
 								size_t start = t * chunkSize;
-								size_t end = std::min(start + chunkSize, count);
+								size_t end = std::min(start + chunkSize, count - 1);
 
 								this->threadPool->Enqueue([&view, start, end, &systemFn]() {
 									auto it = view.at(start);
