@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <vector>
+#include <concepts>
 #include "ECS.h"
 #include "ThreadPool.h"
 #include "CommandBuffer.h"
@@ -9,6 +10,17 @@ namespace Weave
 {
 	namespace ECS
 	{
+		template<typename F, typename... Components>
+		concept SystemFunction = requires(F && f, EntityID id, Components&... components) {
+			{ f(id, components...) } -> std::same_as<void>;
+		};
+
+		// Concept for systems with CommandBuffer
+		template<typename F, typename... Components>
+		concept SystemFunctionWithCommandBuffer = requires(F && f, EntityID id, Components&... components, CommandBuffer & cmd) {
+			{ f(id, components..., cmd) } -> std::same_as<void>;
+		};
+
 		using SystemGroupID = size_t;
 		using SystemID = size_t;
 
@@ -52,27 +64,8 @@ namespace Weave
 			void RetireSystem(SystemID targetSystem);
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(World&)> systemFn, float priority = 0.0f);
 
-			template<typename... Components>
-			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f)
-			{
-				std::function<void(World&)> wrapper = [systemFn](World& world)
-						{
-							WorldView<Components...> view = world.GetView<Components...>();
-
-							size_t count = view.GetEntityCount();
-							if (count == 0) return;
-
-							for (auto entity : view)
-							{
-								std::apply(systemFn, entity);
-							}
-						};
-
-				return RegisterSystem(groupID, wrapper, priority);
-			}
-
-			template<typename... Components>
-			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(EntityID, Components&..., CommandBuffer&)> systemFn, float priority = 0.0f)
+			template<typename... Components, SystemFunctionWithCommandBuffer<Components...> F>
+			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f) 
 			{
 				std::function<void(World&)> wrapper = [this, systemFn](World& world)
 					{
@@ -91,8 +84,27 @@ namespace Weave
 				return RegisterSystem(groupID, wrapper, priority);
 			}
 
-			template<typename... Components>
-			SystemID RegisterSystemThreaded(SystemGroupID groupID, std::function<void(EntityID, Components&..., CommandBuffer&)> systemFn, float priority = 0.0f)
+			template<typename... Components, SystemFunction<Components...> F>
+			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f) 
+			{
+				std::function<void(World&)> wrapper = [systemFn](World& world)
+						{
+							WorldView<Components...> view = world.GetView<Components...>();
+
+							size_t count = view.GetEntityCount();
+							if (count == 0) return;
+
+							for (auto entity : view)
+							{
+								std::apply(systemFn, entity);
+							}
+						};
+
+				return RegisterSystem(groupID, wrapper, priority);
+			}
+
+			template<typename... Components, SystemFunctionWithCommandBuffer<Components...> F>
+			SystemID RegisterSystemThreaded(SystemGroupID groupID, F&& systemFn, float priority = 0.0f)
 			{
 				std::function<void(World&)> wrapper = [this, systemFn](World& world)
 					{
@@ -125,8 +137,8 @@ namespace Weave
 				return RegisterSystem(groupID, wrapper, priority);
 			}
 
-            template<typename... Components>
-            SystemID RegisterSystemThreaded(SystemGroupID groupID, std::function<void(EntityID, Components&...)> systemFn, float priority = 0.0f)
+			template<typename... Components, SystemFunction<Components...> F>
+            SystemID RegisterSystemThreaded(SystemGroupID groupID, F&& systemFn, float priority = 0.0f)
             {
 				std::function<void(World&)> wrapper = [this, systemFn](World& world)
 						{
