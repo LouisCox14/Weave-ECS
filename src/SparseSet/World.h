@@ -44,8 +44,13 @@ namespace Weave
 			WorldView(std::vector<EntityID> entities, SparseSetsTuple sets)
 				: validEntities(std::move(entities)), sets(std::move(sets)) {}
 
-			auto begin() { return WorldViewIterator<Components...>(validEntities.begin(), validEntities.end(), sets); }
-			auto end() { return WorldViewIterator<Components...>(validEntities.end(), validEntities.end(), sets); }
+			WorldViewIterator begin() { return WorldViewIterator<Components...>(validEntities.begin(), validEntities.end(), sets); }
+			WorldViewIterator end() { return WorldViewIterator<Components...>(validEntities.end(), validEntities.end(), sets); }
+			WorldViewIterator at(size_t index) 
+			{ 
+				if (index >= validEntities.size()) throw std::out_of_range("Attempted to access entity outside of world view range.");
+				return WorldViewIterator<Components...>(validEntities.at(index), validEntities.end(), sets);
+			}
 
 			std::size_t GetEntityCount()
 			{
