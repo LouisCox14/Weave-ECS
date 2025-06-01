@@ -14,11 +14,14 @@ void Weave::ECS::World::DeleteEntity(EntityID entity)
 	if (!IsEntityRegistered(entity))
 		throw std::logic_error("Entity is not registered.");
 
-	for (auto& pair : archetypes)
+	Archetype* archetype = entityToArchetype[entity];
+
+	for (std::type_index componentType : archetype->GetComponentTypes())
 	{
-		pair.second.get()->RemoveEntity(entity);
+		archetype->DestroyComponent(entity, componentType);
 	}
 
+	archetype->RemoveEntity(entity);
 	entityToArchetype.erase(entity);
 	availableEntityIDs.insert(entity);
 }

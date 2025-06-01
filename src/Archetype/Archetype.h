@@ -85,12 +85,14 @@ namespace Weave
         {
             void* data;
             std::size_t componentSize;
+            void(*destroy)(const void*);
         };
 
         struct ComponentData
         {
             std::type_index index;
             std::size_t size;
+            void(*destructor)(const void*);
 
             bool operator<(const ComponentData& other) const 
             {
@@ -101,15 +103,20 @@ namespace Weave
 
                 return size < other.size;
             }
+
+            template <typename T>
+            static ComponentData GetComponentData()
+            {
+                return ComponentData(typeid(T), sizeof(T), [](const void* x) { static_cast<const T*>(x)->~T(); } );
+            }
         };
 
-        class Archetype {
+        class Archetype 
+        {
         private:
             std::vector<EntityID> entities;
             std::unordered_map<std::type_index, ComponentStore> components;
             std::set<std::type_index> validTypes;
-
-            std::mutex mutex;
 
             size_t GetEntityIndex(EntityID entity) 
             {
@@ -123,7 +130,7 @@ namespace Weave
                 return std::distance(entities.begin(), it);
             }
 
-            void RemoveEntityAt(size_t index) 
+            void RemoveEntityAt(size_t index)
             {
                 size_t last = entities.size() - 1;
                 if (index != last)
@@ -173,7 +180,8 @@ namespace Weave
 
                 for (std::type_index type : validTypes)
                 {
-                    data.insert({ type, components[type].componentSize });
+                    ComponentStore store = components[type];
+                    data.insert({ type, store.componentSize, store.destroy });
                 }
 
                 return data;
@@ -182,8 +190,6 @@ namespace Weave
             template <typename... Components>
             void AddEntity(EntityID entity, Components... componentData) 
             {
-                mutex.lock();
-
                 entities.push_back(entity);
 
                 for (std::pair<const std::type_index, ComponentStore> componentPair : components)
@@ -195,22 +201,16 @@ namespace Weave
                 }
 
                 (GetComponentVector<Components>().emplace_back(std::move(componentData)), ...);
-
-                mutex.unlock();
             }
 
             void RemoveEntity(EntityID entity)
             {
-                mutex.lock();
-
                 auto it = std::find(entities.begin(), entities.end(), entity);
                 if (it != entities.end())
                 {
                     size_t index = std::distance(entities.begin(), it);
                     RemoveEntityAt(index);
                 }
-
-                mutex.unlock();
             }
 
             template <typename... Components>
@@ -237,6 +237,16 @@ namespace Weave
                 if (!components.contains(typeIndex)) return nullptr;
 
                 return static_cast<std::vector<std::byte>*>(components[typeIndex].data)->data() + components[typeIndex].componentSize * index;
+            }
+
+            void DestroyComponent(EntityID entity, std::type_index typeIndex)
+            {
+                size_t index = GetEntityIndex(entity);
+
+                if (!components.contains(typeIndex)) return;
+
+                ComponentStore store = components[typeIndex];
+                store.destroy(static_cast<std::vector<std::byte>*>(store.data)->data() + store.componentSize * index);
             }
 
             std::vector<EntityID>& GetEntityVector()

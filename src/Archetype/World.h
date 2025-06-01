@@ -144,7 +144,7 @@ namespace Weave
             {
                 std::set<ComponentData> typeSet;
 
-                (typeSet.insert({ typeid(Components), sizeof(Components) }), ...);
+                (typeSet.insert(ComponentData::GetComponentData<Components>()), ...);
 
                 return GetArchetype(typeSet);
             }
@@ -276,6 +276,7 @@ namespace Weave
                 Archetype* oldArchetype = entityToArchetype[entity];
                 newTypeSet = oldArchetype->GetComponentData();
 
+                (oldArchetype->DestroyComponent(entity, typeid(Components)), ...);
                 (newTypeSet.erase({ typeid(Components), sizeof(Components) }), ...);
 
                 Archetype* newArchetype = &GetArchetype(newTypeSet);
