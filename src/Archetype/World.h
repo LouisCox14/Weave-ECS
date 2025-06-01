@@ -251,7 +251,7 @@ namespace Weave
                     newTypeSet = oldArchetype->GetComponentData();
                 }
 
-                (newTypeSet.insert({ typeid(Components), sizeof(Components) }), ...);
+                (newTypeSet.insert(ComponentData::GetComponentData<Components>()), ...);
 
                 Archetype* newArchetype = &GetArchetype(newTypeSet);
 

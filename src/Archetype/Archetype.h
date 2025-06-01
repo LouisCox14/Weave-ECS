@@ -156,7 +156,7 @@ namespace Weave
             {
                 for (const auto& type : types)
                 {
-                    components[type.index] = { new std::vector<std::byte>(), type.size };
+                    components[type.index] = { new std::vector<std::byte>(), type.size, type.destructor };
                     validTypes.insert(type.index);
                 }
             }
