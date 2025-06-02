@@ -41,14 +41,14 @@ struct Position { float x, y; };
 struct Velocity { float dx, dy; };
 ```
 
-2. Create a World and Entity
+2. Create an Engine and an Entity
 
 ```c++
 #include "World.h"
 
-Weave::ECS::World world;
+Weave::ECS::Engine engine;
 
-Weave::ECS::EntityID e = world.CreateEntity();
+Weave::ECS::EntityID e = engine.GetWorld().CreateEntity();
 ```
 
 3. Add Components
@@ -63,21 +63,64 @@ world.AddComponents<Position, Velocity>(e);
 world.AddComponents(e, Position{0.f, 0.f}, Velocity{1.f, 1.f});
 ```
 
-4. Iterate with GetView
+4. Register Systems
 
-Use GetView<T...>() to iterate over all entities with specific components:
+First, create the groups these systems will run in. For example, Update, FixedUpdate, or Render.
 
 ```c++
-for (auto [entity, pos, vel] : world.GetView<Position, Velocity>()) {
-    pos.x += vel.dx;
-    pos.y += vel.dy;
-}
+Weave::ECS::SystemGroupID updateGroup = engine.CreateSystemGroup();
 ```
 
-5. Remove Components
+Then register your systems. These can either take component arguments to be ran on each entity, or a World reference to handle iteration manually.
 
 ```c++
-world.RemoveComponents<Velocity>(e);
+engine.RegisterSystem<Position, Velocity>(
+    updateGroup,
+    [](EntityID entity, Position pos, Velocity vel) {
+    pos.x += vel.dx;
+    pos.y += vel.dy;
+    },
+    1.0f // A priority float that determines the order of systems in the group can also be entered optionally.
+);
+```
+
+or 
+
+```c++
+engine.RegisterSystem(
+    updateGroup,
+    [](World& world) {
+        for (auto [entity, pos, vel] : world.GetView<Position, Velocity>()) {
+            pos.x += vel.dx;
+            pos.y += vel.dy;
+        }
+    }
+);
+```
+
+Per entity systems can also be easily multithreaded.
+
+```c++
+engine.RegisterSystemThreaded<Position, Velocity>(
+    updateGroup,
+    [](EntityID entity, Position pos, Velocity vel) {
+    pos.x += vel.dx;
+    pos.y += vel.dy;
+    }
+);
+```
+
+One important thing to note is that changes to entity composition such as adding or removing components should never occur directly within systems. When registering a system, a command buffer can be requested that will delay operations until the system is complete.
+
+```c++
+engine.RegisterSystem<Position, Velocity>(
+    updateGroup,
+    [](EntityID entity, KillTag tag, CommandBuffer& cmd) {
+    cmd.AddCommand([](World& world) {
+        world.DeleteEntity(entity);
+    });
+    }
+);
 ```
 
 ## 📚 License
