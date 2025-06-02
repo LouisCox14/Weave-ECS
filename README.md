@@ -119,6 +119,19 @@ engine.RegisterSystem<Position, Velocity>(
 );
 ```
 
+Now all that's left to do is run the systems using the system groups already registered.
+
+```c++
+CallSystemGroup(updateGroup);
+CallSystemGroup(renderGroup);
+
+while (timeSinceFixedUpdate > fixedUpdateInterval)
+{
+    CallSystemGroup(fixedUpdateGroup);
+    timeSinceFixedUpdate -= fixedUpdateInterval;
+}
+```
+
 ## 📚 License
 
 MIT License — free for personal, academic, and commercial use.
