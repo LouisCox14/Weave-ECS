@@ -73,6 +73,8 @@ Weave::ECS::SystemGroupID updateGroup = engine.CreateSystemGroup();
 
 Then register your systems. These can either take component arguments to be ran on each entity, or a World reference to handle iteration manually.
 
+On registry systems are linked to a system group, and are ran when that group is called.
+
 ```c++
 engine.RegisterSystem<Position, Velocity>(
     updateGroup,
