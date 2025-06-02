@@ -122,12 +122,12 @@ engine.RegisterSystem<Position, Velocity>(
 Now all that's left to do is run the systems using the system groups already registered.
 
 ```c++
-CallSystemGroup(updateGroup);
-CallSystemGroup(renderGroup);
+engine.CallSystemGroup(updateGroup);
+engine.CallSystemGroup(renderGroup);
 
 while (timeSinceFixedUpdate > fixedUpdateInterval)
 {
-    CallSystemGroup(fixedUpdateGroup);
+    engine.CallSystemGroup(fixedUpdateGroup);
     timeSinceFixedUpdate -= fixedUpdateInterval;
 }
 ```
