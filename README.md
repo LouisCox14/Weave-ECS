@@ -44,7 +44,7 @@ struct Velocity { float dx, dy; };
 2. Create an Engine and an Entity
 
 ```c++
-#include "World.h"
+#include "Engine.h"
 
 Weave::ECS::Engine engine;
 
@@ -77,16 +77,12 @@ Then register your systems. These can either take component arguments to be ran 
 engine.RegisterSystem<Position, Velocity>(
     updateGroup,
     [](EntityID entity, Position pos, Velocity vel) {
-    pos.x += vel.dx;
-    pos.y += vel.dy;
+        pos.x += vel.dx;
+        pos.y += vel.dy;
     },
     1.0f // A priority float that determines the order of systems in the group can also be entered optionally.
 );
-```
 
-or 
-
-```c++
 engine.RegisterSystem(
     updateGroup,
     [](World& world) {
@@ -104,8 +100,8 @@ Per entity systems can also be easily multithreaded.
 engine.RegisterSystemThreaded<Position, Velocity>(
     updateGroup,
     [](EntityID entity, Position pos, Velocity vel) {
-    pos.x += vel.dx;
-    pos.y += vel.dy;
+        pos.x += vel.dx;
+        pos.y += vel.dy;
     }
 );
 ```
@@ -116,9 +112,9 @@ One important thing to note is that changes to entity composition such as adding
 engine.RegisterSystem<Position, Velocity>(
     updateGroup,
     [](EntityID entity, KillTag tag, CommandBuffer& cmd) {
-    cmd.AddCommand([](World& world) {
-        world.DeleteEntity(entity);
-    });
+        cmd.AddCommand([](World& world) {
+            world.DeleteEntity(entity);
+        });
     }
 );
 ```
