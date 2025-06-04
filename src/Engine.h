@@ -73,22 +73,6 @@ namespace Weave
 
 			void RetireSystem(SystemID targetSystem);
 
-			template<WorldSystemFunction F>
-			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f)
-			{
-				SystemID id = nextSystemID++;
-
-				systemGroups[groupID].systems.push_back({
-					std::function<void(World&)>(std::forward<F>(systemFn)),
-					id,
-					priority
-					});
-
-				systemGroups[groupID].dirty = true;
-				systemToGroup[id] = groupID;
-				return id;
-			}
-
 			template<WorldSystemFunctionWithCommandBuffer F>
 			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f)
 			{
@@ -98,6 +82,22 @@ namespace Weave
 					[this, fn = std::forward<F>(systemFn)](World& world) {
 						fn(world, commandBuffer);
 					},
+					id,
+					priority
+					});
+
+				systemGroups[groupID].dirty = true;
+				systemToGroup[id] = groupID;
+				return id;
+			}
+
+			template<WorldSystemFunction F>
+			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f)
+			{
+				SystemID id = nextSystemID++;
+
+				systemGroups[groupID].systems.push_back({
+					std::function<void(World&)>(std::forward<F>(systemFn)),
 					id,
 					priority
 					});
