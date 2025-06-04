@@ -64,3 +64,25 @@ void Weave::ECS::Engine::RetireSystem(SystemID targetSystem)
         systemToGroup.erase(mapIt);
     }
 }
+
+Weave::ECS::SystemID Weave::ECS::Engine::RegisterSystem(SystemGroupID groupID, std::function<void(World&, CommandBuffer&)> systemFn, float priority)
+{
+    SystemID id = nextSystemID++;
+
+    systemGroups[groupID].systems.push_back({ [this, systemFn](World& world) { systemFn(world, commandBuffer); }, id, priority });
+    systemGroups[groupID].dirty = true;
+    systemToGroup[id] = groupID;
+
+    return id;
+}
+
+Weave::ECS::SystemID Weave::ECS::Engine::RegisterSystem(SystemGroupID groupID, std::function<void(World&)> systemFn, float priority)
+{
+    SystemID id = nextSystemID++;
+
+    systemGroups[groupID].systems.push_back({ std::move(systemFn), id, priority });
+    systemGroups[groupID].dirty = true;
+    systemToGroup[id] = groupID;
+
+    return id;
+}
