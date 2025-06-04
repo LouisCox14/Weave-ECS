@@ -66,7 +66,6 @@ namespace Weave
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(World&, CommandBuffer&)> systemFn, float priority = 0.0f);
 			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(World&)> systemFn, float priority = 0.0f);
 
-
 			template<typename... Components, SystemFunctionWithCommandBuffer<Components...> F>
 			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f) 
 			{
