@@ -10,16 +10,6 @@ namespace Weave
 {
 	namespace ECS
 	{
-		template<typename F>
-		concept WorldSystemFunction = requires(F && f, World & world) {
-			{ f(world) } -> std::same_as<void>;
-		};
-
-		template<typename F>
-		concept WorldSystemFunctionWithCommandBuffer = requires(F && f, World & world, CommandBuffer & cmd) {
-			{ f(world, cmd) } -> std::same_as<void>;
-		};
-
 		template<typename F, typename... Components>
 		concept SystemFunction = requires(F && f, EntityID id, Components&... components) {
 			{ f(id, components...) } -> std::same_as<void>;
@@ -73,39 +63,9 @@ namespace Weave
 
 			void RetireSystem(SystemID targetSystem);
 
-			template<WorldSystemFunctionWithCommandBuffer F>
-			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f)
-			{
-				SystemID id = nextSystemID++;
+			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(World&, CommandBuffer&)> systemFn, float priority = 0.0f);
+			SystemID RegisterSystem(SystemGroupID groupID, std::function<void(World&)> systemFn, float priority = 0.0f);
 
-				systemGroups[groupID].systems.push_back({
-					[this, fn = std::forward<F>(systemFn)](World& world) {
-						fn(world, commandBuffer);
-					},
-					id,
-					priority
-					});
-
-				systemGroups[groupID].dirty = true;
-				systemToGroup[id] = groupID;
-				return id;
-			}
-
-			template<WorldSystemFunction F>
-			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f)
-			{
-				SystemID id = nextSystemID++;
-
-				systemGroups[groupID].systems.push_back({
-					std::function<void(World&)>(std::forward<F>(systemFn)),
-					id,
-					priority
-					});
-
-				systemGroups[groupID].dirty = true;
-				systemToGroup[id] = groupID;
-				return id;
-			}
 
 			template<typename... Components, SystemFunctionWithCommandBuffer<Components...> F>
 			SystemID RegisterSystem(SystemGroupID groupID, F&& systemFn, float priority = 0.0f) 
