@@ -55,7 +55,7 @@ void Weave::ECS::Engine::RetireSystem(SystemID targetSystem)
     SystemGroupID groupID = mapIt->second;
     SystemGroup& group = systemGroups[groupID];
 
-    auto it = std::remove_if(group.systems.begin(), group.systems.end(), [groupID](const System& entry) { return entry.id == groupID; });
+    auto it = std::remove_if(group.systems.begin(), group.systems.end(), [targetSystem](const System& entry) { return entry.id == targetSystem; });
 
     if (it != group.systems.end()) 
     {

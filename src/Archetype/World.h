@@ -121,6 +121,7 @@ namespace Weave
 
             std::size_t GetEntityCount()
             {
+                if (cumulativeSizes.empty()) return 0;
                 return cumulativeSizes.back();
             }
         };
