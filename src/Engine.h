@@ -124,6 +124,8 @@ namespace Weave
 									systemFn(args..., this->commandBuffer);
 									}, entity);
 							}
+
+							return;
 						}
 
 						size_t chunkSize = (count + threads - 1) / threads;
@@ -167,6 +169,8 @@ namespace Weave
 								{
 									std::apply(systemFn, entity);
 								}
+
+								return;
 							}
 
 							size_t chunkSize = (count + threads - 1) / threads;
