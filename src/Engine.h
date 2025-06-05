@@ -115,6 +115,17 @@ namespace Weave
 						if (count == 0) return;
 
 						size_t threads = this->threadPool->GetThreadCount();
+
+						if (count < threads)
+						{
+							for (auto entity : view)
+							{
+								std::apply([&systemFn, this](auto&&... args) {
+									systemFn(args..., this->commandBuffer);
+									}, entity);
+							}
+						}
+
 						size_t chunkSize = (count + threads - 1) / threads;
 						CommandBuffer& cmdBuffer = this->commandBuffer;
 
@@ -149,6 +160,15 @@ namespace Weave
 							if (count == 0) return;
 
 							size_t threads = this->threadPool->GetThreadCount();
+
+							if (count < threads)
+							{
+								for (auto entity : view)
+								{
+									std::apply(systemFn, entity);
+								}
+							}
+
 							size_t chunkSize = (count + threads - 1) / threads;
 
 							for (size_t t = 0; t < threads; t++) {
